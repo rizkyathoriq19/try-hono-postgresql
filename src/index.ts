@@ -6,6 +6,8 @@ import { cors } from 'hono/cors'
 import { connectDB } from '@/config/database.js'
 import auth from '@/routes/auth.js'
 import "@/lib/hashPassword.js"
+import { swaggerUI } from '@hono/swagger-ui';
+import swagger from '@/docs/route.js';
 
 async function init() {
   try {
@@ -16,7 +18,19 @@ async function init() {
     
     app.use(poweredBy())
     app.use(logger())
-    
+
+    app.get('/ui', swaggerUI({ url: '/doc/openapi.json' }));
+    app.get('/doc/openapi.json', (c) => {
+      return c.json(swagger.getOpenAPIDocument({
+        openapi: '3.1.0',
+        info: {
+          title: 'Auth API',
+          version: '1.0.0',
+          description: 'API for user authentication',
+        },
+      }));
+    });
+
     app.use('/api/*', cors())
     app.route('/api', auth)
     
