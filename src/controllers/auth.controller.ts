@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { encrypt } from '@/utils/encryption.js'
 import { generateToken } from '@/utils/jwt.js'
 import { type User } from '@prisma/client'
 import type { Context } from 'hono'
@@ -56,7 +55,7 @@ const registerValidationSchema = z.object({
 export const authController = {
     async register(c: Context) {
         /**
-         #swagger.tags = ['Auth']
+        #swagger.tags = ['Auth']
             #swagger.summary = 'Register a new user'
             #swagger.description = 'This endpoint allows users to register a new account'
             #swagger.parameters['newUser'] = {
@@ -100,7 +99,74 @@ export const authController = {
             return c.json({ error: "Invalid input" }, 400);
         }
     },
-    async login(c: Context) { },
-    async me(c: Context) { },
+    async login(c: Context) {
+        /**
+        #swagger.tags = ['Auth']
+            #swagger.summary = 'Login'
+            #swagger.description = 'This endpoint allows users to login'
+            #swagger.parameters['login'] = {
+                in: 'body',
+                description: 'User login information',
+                required: true,
+                schema: { $ref: '#/definitions/Login' }
+            }
+            #swagger.responses[200] = {
+                description: 'User logged in successfully',
+                schema: { $ref: '#/definitions/User' }
+            }
+            #swagger.responses[400] = {
+                description: 'Invalid input data',
+                schema: { $ref: '#/definitions/Error' }
+            }
+            #swagger.responses[401] = {
+                description: 'Invalid credentials',
+                schema: { $ref: '#/definitions/Error' }
+            }
+         */
+
+        const body = await c.req.json<TLogin>()
+        const { identifier, password } = body
+
+        try {
+            const userByIndentifier = await prisma.$queryRaw<User[]>`
+                SELECT id, "fullName", username, email 
+                FROM "user"
+                WHERE (username = ${identifier} OR email = ${identifier}) 
+                AND password = crypt(${password}, password);
+            `;
+
+            if(userByIndentifier.length === 0) {
+                return c.json({ error: "Invalid username/email or password" }, 401);
+            }
+            
+            const token = await generateToken({
+                id: userByIndentifier[0].id,
+                role: userByIndentifier[0].role,
+            });
+
+            return c.json({ user: userByIndentifier[0], token }, 200);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return c.json({ error: error.errors.map(e => e.message).join(', ') }, 400);
+            }
+            return c.json({ error: "Invalid input" }, 400);
+        }
+        
+    },
+    async me(c: Context) { 
+        /**
+        #swagger.tags = ['Auth']
+            #swagger.summary = 'Get user profile'
+            #swagger.description = 'This endpoint allows users to get their profile'
+            #swagger.responses[200] = {
+                description: 'User profile',
+                schema: { $ref: '#/definitions/User' }
+            }
+            #swagger.responses[401] = {
+                description: 'Unauthorized',
+                schema: { $ref: '#/definitions/Error' }
+            }
+         */
+    },
 }
 

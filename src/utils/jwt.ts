@@ -4,7 +4,6 @@ import { SECRET } from "@/utils/env.js";
 export interface IUserToken {
     id: string | number;
     role: "USER" | "ADMIN";
-    profilePicture?: string;
     exp?: number;
     [key: string]: any;
 }
