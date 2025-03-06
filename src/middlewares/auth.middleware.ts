@@ -1,6 +1,8 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { getUserData } from "@/utils/jwt.js";
 import type { IUserToken } from "@/utils/jwt.js";
+
+export interface IReqUser extends Context<{ Variables: { user: IUserToken } }> {}
 
 export const authMiddleware: MiddlewareHandler<{ Variables: { user: IUserToken } }> = async (c, next) => {
     const token = c.req.header("Authorization")?.replace("Bearer ", "");

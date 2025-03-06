@@ -1,8 +1,9 @@
+import type { Context } from 'hono'
 import { z } from 'zod'
 import { generateToken } from '@/utils/jwt.js'
 import { type User } from '@prisma/client'
-import type { Context } from 'hono'
 import prisma from '@/lib/prisma.js'
+import type { IReqUser } from '@/middlewares/auth.middleware.js'
 
 type TRegister = {
     fullName: string
@@ -153,20 +154,38 @@ export const authController = {
         }
         
     },
-    async me(c: Context) { 
+    async me(c: IReqUser) { 
         /**
         #swagger.tags = ['Auth']
-            #swagger.summary = 'Get user profile'
-            #swagger.description = 'This endpoint allows users to get their profile'
-            #swagger.responses[200] = {
-                description: 'User profile',
-                schema: { $ref: '#/definitions/User' }
+        #swagger.security = [{ "BearerAuth": [] }]
+        #swagger.summary = 'Get user profile'
+        #swagger.description = 'This endpoint allows users to get their profile'
+        #swagger.responses[200] = {
+            description: 'User profile',
+            schema: { $ref: '#/definitions/User' }
+        }
+        #swagger.responses[401] = {
+            description: 'Unauthorized',
+            schema: { $ref: '#/definitions/Error' }
+        }
+        */
+        try {
+            const user = c.get("user");
+            if (!user) return c.json({ error: "Unauthorized" }, 401);
+            
+            const result = await prisma.$queryRaw<User[]>`
+                SELECT id, "fullName", username, email
+                FROM "user"
+                WHERE id = ${user.id};
+            `;
+
+            return c.json(result[0], 200);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return c.json({ error: error.errors.map(e => e.message).join(', ') }, 400);
             }
-            #swagger.responses[401] = {
-                description: 'Unauthorized',
-                schema: { $ref: '#/definitions/Error' }
-            }
-         */
+            return c.json({ error: "Invalid input" }, 400);
+        }
     },
 }
 
