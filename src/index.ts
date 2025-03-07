@@ -28,6 +28,22 @@ async function init() {
           version: '1.0.0',
           description: 'API for user authentication',
         },
+        servers: [
+          {
+            url: '{protocol}://{baseurl}/api',
+            description: 'Identify Server Test API',
+            variables: {
+              protocol: {
+                default: 'http',
+                enum: ['http', 'https'],
+              },
+              baseurl: {
+                default: 'localhost:10000',
+                enum: ['localhost:10000'],
+              },
+            }
+          }
+        ],
       }));
     });
 

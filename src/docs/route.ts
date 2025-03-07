@@ -1,7 +1,14 @@
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { getUserData } from "@/utils/jwt.js";
 
 const swagger = new OpenAPIHono();
+
+
+swagger.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
+    type: 'http',
+    scheme: 'bearer'
+})
 
 /**
  * 🔹 Route: Register User
@@ -10,6 +17,7 @@ swagger.openapi(
     createRoute({
         method: "post",
         path: "/auth/register",
+        tags: ["Auth"],
         request: {
             body: {
                 content: {
@@ -79,6 +87,7 @@ swagger.openapi(
     createRoute({
         method: "post",
         path: "/auth/login",
+        tags: ["Auth"],
         request: {
             body: {
                 content: {
@@ -163,7 +172,8 @@ swagger.openapi(
     createRoute({
         method: "get",
         path: "/auth/me",
-        security: [{ BearerAuth: [] }],
+        tags: ["Auth"],
+        security: [{ Bearer: [] }],
         responses: {
             200: {
                 description: "User details",
@@ -198,15 +208,16 @@ swagger.openapi(
 
         const token = authHeader.split(" ")[1];
 
-        if (token !== "mocked-jwt-token") {
+        const decoded = await getUserData(token)
+        if (!decoded) {
             return c.json({ error: "Invalid token" }, 401);
         }
 
         const user = {
-            id: "123",
-            fullName: "Test User",
-            username: "testuser",
-            email: "test@example.com",
+            id: String(decoded.id),
+            fullName: decoded.fullName || "Unknown fullname",
+            username: decoded.username || "Unknown username",
+            email: decoded.email || "Unknown email",
         };
 
         return c.json(user, 200);
